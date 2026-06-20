@@ -763,11 +763,10 @@ def delete_teacher(id):
         return jsonify({"message": "Teacher not found"}), 404
 
     # ✅ DELETE LINKED USER
+    db.session.delete(teacher)
     user = User.query.get(teacher.user_id)
     if user:
         db.session.delete(user)
-
-    db.session.delete(teacher)
     db.session.commit()
 
     return jsonify({"message": "Teacher deleted successfully"})
