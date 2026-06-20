@@ -8,7 +8,7 @@ from models import PendingStudent
 from models import Subject
 from models import Standard
 from werkzeug.security import check_password_hash
-from models import Teacher
+from models import Teacher, User
 from utils.backup import create_backup
 
 MAX_FUTURE_CLASSES = 1
@@ -711,15 +711,15 @@ def add_teacher():
     subjects = data.get('subjects', [])
     subjects = list(set(subjects))
     standard_id = data.get('standard_id')
-        if not standard_id:
-           standard_id = None
+    if not standard_id:
+        standard_id = None
     teacher = Teacher(
         name=data['name'],
         qualification=data['qualification'],
         experience=data['experience'],
         phone=data['phone'],
         email=data['email'],
-        standard_id=standard_id,
+        standard_id = standard_id,
         user_id=user.id
     )
     teacher.subjects = ",".join(subjects)
