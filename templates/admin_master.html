@@ -1,0 +1,208 @@
+{% extends "base.html" %}
+
+{% block content %}
+
+<div class="page-container">
+
+<h2>⚙ Admin Master Settings</h2>
+
+<!-- ✅ TABS HEADER -->
+<div class="tab-header">
+
+    <button class="tab-btn active" onclick="showTab('classTab', this)">
+        📚 Class & Subject
+    </button>
+
+    <button class="tab-btn" onclick="showTab('teacherTab', this)">
+        👨‍🏫 Teacher
+    </button>
+
+    <button class="tab-btn" onclick="showTab('studentTab', this)">
+        🎓 Student
+    </button>
+
+</div>
+
+<!-- ✅ CLASS TAB -->
+<div id="classTab" class="tab-content active">
+
+    <div class="form-card">
+
+        <h3>📚 Class & Subject Management</h3>
+
+        <div class="form-grid">
+
+            <input type="text" id="standardName" placeholder="Enter standard">
+
+            <div>
+                <button onclick="addStandard()">Add Standard</button>
+            </div>
+
+            <select id="standardSelect" onchange="loadSubjects()"></select>
+
+            <input type="text" id="subjectName" placeholder="Enter subject">
+
+            <div></div>
+
+            <div>
+                <button onclick="addSubject()">Add Subject</button>
+            </div>
+
+        </div>
+
+        <br>
+
+        <h4>📋 Subject List</h4>
+
+        <table>
+            <thead>
+                <tr>
+                    <th>Standard</th>
+                    <th>Subject</th>
+                    <th>Action</th>
+                </tr>
+            </thead>
+            <tbody id="subject-list"></tbody>
+        </table>
+
+    </div>
+
+</div>
+
+<!-- ✅ TEACHER TAB -->
+<div id="teacherTab" class="tab-content">
+
+    <div class="form-card">
+
+        <h3>👨‍🏫 Teacher Management</h3>
+
+        <h4>➕ Add Teacher</h4>
+
+        <div class="form-grid">
+
+            <input type="text" id="teacherName" placeholder="Name">
+
+            <div>
+                <label>Role:</label>
+                <select id="teacherRole">
+                    <option value="teacher">Teacher</option>
+                    <option value="teacher,admin">Teacher + Admin</option>
+                </select>
+            </div>
+
+            <input type="text" id="qualification" placeholder="Qualification">
+
+            <select id="teacherStandard" onchange="loadSubjectsForTeacher()"></select>
+
+            <input type="text" id="experience" placeholder="Experience (years)">
+
+            <div id="teacherSubjects" class="box"></div>
+
+            <input type="text" id="phone" placeholder="Phone Number">
+
+            <input type="text" id="teacherUsername" placeholder="Username">
+
+            <input type="text" id="email" placeholder="Email ID">
+
+            <input type="password" id="teacherPassword" placeholder="Password">
+
+        </div>
+
+        <br>
+
+        <button onclick="addTeacher()" id="addTeacherBtn">Add Teacher</button>
+        <button onclick="updateTeacher()" id="updateTeacherBtn" style="display:none;">
+            Update Teacher
+        </button>
+
+        <hr style="margin:20px 0;">
+
+        <h4>📋 Teacher List</h4>
+
+        <table>
+            <thead>
+                <tr>
+                    <th>Name</th>
+                    <th>Qualification</th>
+                    <th>Experience</th>
+                    <th>Subjects</th>
+                    <th>Phone</th>
+                    <th>Email</th>
+                    <th>Action</th>
+                </tr>
+            </thead>
+            <tbody id="teacher-list"></tbody>
+        </table>
+
+    </div>
+
+</div>
+
+<!-- ✅ STUDENT TAB -->
+<div id="studentTab" class="tab-content">
+
+    <div class="form-card">
+
+        <h3>🎓 Student Management</h3>
+
+        <h4>➕ Add Student</h4>
+
+        <div class="form-grid">
+
+            <input type="text" id="studentName" placeholder="Student Name">
+
+            <input type="text" id="parentName" placeholder="Parent Name">
+
+            <input type="text" id="contact" placeholder="Contact Number">
+
+            <select id="studentStandard" onchange="loadSubjectsForStudent()"></select>
+
+            <div id="subjectCheckboxes" class="box"></div>
+
+            <!-- ✅ EXISTING -->
+            <input type="number" id="fee" placeholder="Monthly Fee">
+
+            <!-- ✅ ✅ NEW FIELD -->
+            <input type="number" id="fee_due_day" placeholder="Fee Due Day (1-28)" min="1" max="28">
+
+            <input type="text" id="username" placeholder="Username">
+
+            <input type="password" id="password" placeholder="Password">
+
+        </div>
+
+        <br>
+
+        <button id="addBtn" onclick="addStudent()">Add Student</button>
+        <button id="updateBtn" onclick="updateStudent()" style="display:none;">
+            Update Student
+        </button>
+
+        <hr style="margin:20px 0;">
+
+        <h4>📋 Student List</h4>
+
+        <table>
+            <thead>
+                <tr>
+                    <th>Name</th>
+                    <th>Standard</th>
+                    <th>Subjects</th>
+                    <th>Parent</th>
+                    <th>Contact</th>
+                    <th>Fee</th>
+                    <!-- ✅ ✅ NEW COLUMN -->
+                    <th>Due Day</th>
+                    <th>Action</th>
+                </tr>
+            </thead>
+            <tbody id="student-list"></tbody>
+        </table>
+
+    </div>
+
+</div>
+
+</div>
+
+{% endblock %}

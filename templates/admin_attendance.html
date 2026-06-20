@@ -1,0 +1,28 @@
+{% extends "base.html" %}
+{% block content %}
+
+<h2>📋 Admin Attendance Control</h2>
+
+<table>
+    <thead>
+        <tr>
+            <th>Student</th>
+            <th>Teacher</th>
+            <th>Subject</th>
+            <th>Date</th>
+            <th>Time</th>
+            <th>Status</th>
+            <th>Mark Attendance</th>
+        </tr>
+    </thead>
+
+    <tbody id="admin-class-table"></tbody>
+</table>
+
+<script>
+window.onload = function() {
+    loadAdminClasses();
+};
+</script>
+
+{% endblock %}

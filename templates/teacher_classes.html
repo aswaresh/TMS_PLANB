@@ -1,0 +1,26 @@
+{% extends "base.html" %}
+
+{% block content %}
+
+<h1>My Classes</h1>
+<div style="margin-bottom: 10px; display: flex; gap: 10px;">
+
+    <input type="month" id="monthFilter" onchange="loadTeacherClasses()">
+
+    <input type="text" id="studentSearch" placeholder="Search subject..." onkeyup="loadTeacherClasses()">
+
+</div>
+<table border="1" cellpadding="10">
+    <tr>
+        <th>Student</th>
+        <th>Subject</th>
+        <th>Date</th>
+        <th>Time</th>
+        <th>Attendance Status</th>
+        <th style="width:180px;">Mark Attendance</th>
+    </tr>
+
+    <tbody id="class-table"></tbody>
+</table>
+
+{% endblock %}

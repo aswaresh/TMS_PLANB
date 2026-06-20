@@ -1,0 +1,28 @@
+{% extends "base.html" %}
+
+{% block content %}
+
+<h1>Students</h1>
+
+<table>
+    <tr>
+        <th>ID</th>
+        <th>Name</th>
+        <th>Username</th>
+        <th>Actions</th> <!-- ✅ New column -->
+    </tr>
+
+    {% for student in students %}
+    <tr>
+        <td>{{ student.id }}</td>
+        <td>{{ student.name }}</td>
+        <td>{{ student.username }}</td>
+        <td>
+            <button class="btn-view">View</button>
+            <button class="btn-edit">Edit</button>
+        </td>
+    </tr>
+    {% endfor %}
+</table>
+
+{% endblock %}

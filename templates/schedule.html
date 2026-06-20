@@ -1,0 +1,62 @@
+{% extends "base.html" %}
+
+{% block content %}
+
+<h1>Schedule</h1>
+
+<table>
+    <tr>
+        <th>ID</th>
+        <th>Date</th>
+        <th>Time</th>
+        <th>Teacher</th>
+        <th>Student</th>
+        <th>Status</th>
+        <th>Action</th>
+    </tr>
+
+    {% for s in slots %}
+    <tr id="slot-row-{{ s.id }}">
+        <td>{{ s.id }}</td>
+        <td>{{ s.date }}</td>
+        <td>{{ s.time }}</td>
+        <td>{{ s.teacher_name }}</td>
+        <td class="student-cell">{{ s.student_name }}</td>
+
+        <!-- ✅ STATUS -->
+        <td class="status-cell">
+            {% if s.student_name == "Not Assigned" %}
+                <span class="badge badge-pending">Available</span>
+            {% else %}
+                <span class="badge badge-present">Assigned</span>
+            {% endif %}
+        </td>
+
+        <!-- ✅ ACTION -->
+        <td class="action-cell">
+
+            <!-- ✅ ALWAYS show dropdown -->
+            <select id="student-select-{{ s.id }}">
+                {% for u in students %}
+                    <option value="{{ u.id }}"
+                        {% if u.name == s.student_name %}selected{% endif %}>
+                        {{ u.name }}
+                    </option>
+                {% endfor %}
+            </select>
+
+            {% if s.student_name == "Not Assigned" %}
+                <!-- ✅ Assign button -->
+                <button class="btn-present" onclick="assignStudent({{ s.id }})">Assign</button>
+            {% else %}
+                <!-- ✅ Change button -->
+                <button class="btn-edit" onclick="assignStudent({{ s.id }})">Change</button>
+            {% endif %}
+
+        </td>
+
+    </tr>
+    {% endfor %}
+</table>
+
+{% endblock %}

@@ -1,0 +1,74 @@
+{% extends "base.html" %}
+{% block content %}
+
+<h2>🗓 Weekly Calendar</h2>
+
+<div class="calendar-container">
+    <table class="calendar-table" style="table-layout: fixed;">
+        <thead>
+            <tr>
+                <th>Time</th>
+                <th id="day-0"></th>
+                <th id="day-1"></th>
+                <th id="day-2"></th>
+                <th id="day-3"></th>
+                <th id="day-4"></th>
+                <th id="day-5"></th>
+                <th id="day-6"></th>
+            </tr>
+        </thead>
+
+        <tbody id="calendar-body"></tbody>
+    </table>
+</div>
+
+<div id="calendarModal" class="modal">
+
+    <h4>📌 Class Details</h4>
+
+    <div class="form-group">
+        <label>Student</label>
+        <input type="text" id="calStudent" readonly>
+    </div>
+
+    <div class="form-group">
+        <label>Subject</label>
+        <input type="text" id="calSubject">
+    </div>
+
+    <div class="form-group">
+        <label>Date</label>
+        <input type="date" id="calDate">
+    </div>
+
+    <div class="form-group">
+        <label>Time</label>
+        <input type="text" id="calTime">
+    </div>
+
+    <!-- ✅ NEW -->
+    <div class="form-group">
+        <label>Attendance</label>
+        <select id="calAttendance">
+            <option value="">Select Attendance</option>
+            <option value="present">Present</option>
+            <option value="absent">Absent</option>
+        </select>
+    </div>
+
+    <div class="modal-actions">
+        <button onclick="updateCalendarClass()">Save</button>
+        <button onclick="markAttendanceFromCalendar()">Mark Attendance</button>
+        <button onclick="cancelCalendarClass()">Cancel Class</button>
+        <button onclick="closeCalendarModal()">Close</button>
+    </div>
+
+</div>
+
+<script>
+window.onload = function() {
+    loadCalendar();
+};
+</script>
+
+{% endblock %}

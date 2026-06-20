@@ -1,0 +1,55 @@
+{% extends "base.html" %}
+
+{% block content %}
+
+<h1>My Slots</h1>
+
+<table>
+    <tr>
+        <th>Time</th>
+        <th>Mon</th>
+        <th>Tue</th>
+        <th>Wed</th>
+        <th>Thu</th>
+        <th>Fri</th>
+        <th>Sat</th>
+        <th>Sun</th>
+        <th>Update</th>
+    </tr>
+
+    {% set times = ["06:00 PM", "07:00 PM", "08:00 PM"] %}
+
+    {% for t in times %}
+    {% set timeIndex = loop.index0 %}
+
+    <tr>
+        <td>{{ t }}</td>
+
+        {% for d in range(7) %}
+        <td>
+            <select id="slot-{{ timeIndex }}-{{ d }}">
+                <option value="not">Not Available</option>
+                <option value="available">Available</option>
+            </select>
+        </td>
+        {% endfor %}
+
+        <td>       
+        <button class="btn-update" onclick="updateRow('{{ t }}', {{ timeIndex }})">
+            Update
+        </button>
+
+        </td>
+
+    </tr>
+    {% endfor %}
+
+</table>
+
+<script>
+window.onload = function() {
+    loadSlots();
+};
+</script>
+
+{% endblock %}

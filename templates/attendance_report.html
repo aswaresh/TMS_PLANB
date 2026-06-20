@@ -1,0 +1,29 @@
+{% extends "base.html" %}
+
+{% block content %}
+
+<h2>📊 Attendance Report</h2>
+
+<div style="margin-bottom:15px;">
+    <label><b>Select Month:</b></label>
+    <input type="month" id="reportMonth" onchange="loadAttendanceReport()">
+</div>
+
+
+<!-- ✅ ✅ CARD CONTAINER -->
+<div id="attendance-report" class="report-grid"></div>
+
+<script>
+document.addEventListener("DOMContentLoaded", function() {
+
+    const today = new Date();
+    const month = today.toISOString().slice(0, 7);
+
+    const input = document.getElementById("reportMonth");
+    if (input) input.value = month;
+
+    loadAttendanceReport();
+});
+</script>
+
+{% endblock %}

@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Login</title>
+
+    <style>
+        body {
+            margin: 0;
+            font-family: Arial, sans-serif;
+            height: 100vh;
+            display: flex;
+        }
+
+        /* ✅ LEFT SIDE */
+        .left-panel {
+            flex: 1;
+            background: linear-gradient(135deg, #005f6b, #008891);
+            color: white;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            padding: 60px;
+        }
+
+        .left-panel img {
+            width: 180px;
+            margin-bottom: 15px;
+        }
+
+        .left-panel h1 {
+            font-size: 34px;
+            margin: 0;
+        }
+
+        .left-panel p {
+            margin-top: 10px;
+            color: #dfe6e9;
+        }
+
+        /* ✅ RIGHT SIDE */
+        .right-panel {
+            flex: 1;
+            display: flex;
+            justify-content: flex-end; /* ✅ RIGHT ALIGN */
+            align-items: center;
+            background: #f5f6fa;
+            padding-right: 80px;
+        }
+
+        .card {
+            width: 340px;
+            padding: 30px;
+            background: white;
+            border-radius: 10px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+        }
+
+        .card h2 {
+            text-align: center;
+            margin-bottom: 25px;
+        }
+
+        /* ✅ FORM GROUP (FIX ALIGNMENT) */
+        .form-group {
+            margin-bottom: 15px;
+        }
+
+        input {
+            width: 100%;
+            padding: 12px;
+            border-radius: 6px;
+            border: 1px solid #ccc;
+            font-size: 14px;
+            box-sizing: border-box;   /* ✅ CRITICAL FIX */
+        }
+
+        input:focus {
+            border-color: #008891;
+            outline: none;
+        }
+
+        button {
+            width: 100%;              /* ✅ MATCH INPUT WIDTH */
+            padding: 12px;
+            background: #008891;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: bold;
+            margin-top: 10px;
+            box-sizing: border-box;   /* ✅ CRITICAL FIX */
+        }
+
+        button:hover {
+            background: #006d75;
+        }
+
+    </style>
+</head>
+
+<body>
+
+<!-- ✅ LEFT SIDE -->
+<div class="left-panel">
+
+    <!-- ✅ LOGO -->
+    <img src="/static/logologin.png" alt="Logo">
+
+    <h1>Tuition Management System</h1>
+
+    <p>Manage students, teachers, schedules and attendance efficiently.</p>
+
+</div>
+
+<!-- ✅ RIGHT SIDE -->
+<div class="right-panel">
+
+    <div class="card">
+
+        <h2>Login</h2>
+
+        <div class="form-group">
+            <input type="text" id="username" placeholder="Username">
+        </div>
+
+        <div class="form-group">
+            <input type="password" id="password" placeholder="Password">
+        </div>
+
+        <button onclick="login()">Login</button>
+
+    </div>
+
+</div>
+
+<script>
+
+function login() {
+
+    const username = document.getElementById("username").value;
+    const password = document.getElementById("password").value;
+
+    fetch('/api/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username, password })
+    })
+    .then(res => res.json())
+    .then(data => {
+
+        if (data.message !== "Login successful") {
+            alert(data.message);
+            return;
+        }
+
+        localStorage.setItem("user_id", data.user_id);
+        localStorage.setItem("name", data.name);
+        localStorage.setItem("teacher_id", data.teacher_id);
+        localStorage.setItem("roles", data.roles);
+
+        // ✅ split + trim
+        const roles = data.roles.split(",").map(r => r.trim());
+
+        // ✅ ✅ ✅ PRIORITY LOGIC
+        if (roles.includes("teacher")) {
+            window.location.href = "/teacher_dashboard";   // ✅ highest priority
+        } 
+        else if (roles.includes("admin")) {
+            window.location.href = "/admin_schedule";
+        } 
+        else if (roles.includes("student")) {
+            window.location.href = "/student_dashboard";
+        } 
+        else {
+            alert("No valid role assigned");
+        }
+    })
+    .catch(err => {
+        console.error(err);
+        alert("Login failed");
+    });
+}
+
+</script>
+

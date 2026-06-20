@@ -1,0 +1,46 @@
+{% extends "base.html" %}
+
+{% block content %}
+
+<label>Select Month:</label>
+<input type="month" id="monthFilter" onchange="loadAttendanceReport()">
+
+<h3>Attendance Report (Subject-wise)</h3>
+<div class="summary-card">
+    Overall Attendance: <span id="overallPercent">0%</span>
+</div>
+<div id="attendance-report" class="report-grid"></div>
+
+<h1>My Classes</h1>
+<p>View your schedule and attendance</p>
+<div style="margin-bottom: 10px; display: flex; gap: 10px;">
+
+    <input type="month" id="classMonthFilter" onchange="loadStudentClasses()">
+
+    <input type="text" id="studentSearch" placeholder="Search subject..." onkeyup="loadStudentClasses()">
+
+</div>
+<table border="1" cellpadding="10">
+    <tr>
+        <th>Subject</th>
+        <th>Date</th>
+        <th>Time</th>
+        <th>Attendance</th>
+    </tr>
+
+    <tbody id="student-table"></tbody>
+</table>
+
+<script>
+document.addEventListener("DOMContentLoaded", function() {
+
+    const today = new Date();
+    const month = today.toISOString().slice(0, 7);
+
+    document.getElementById("classMonthFilter").value = month;
+
+    loadAttendanceReport();   // ✅ auto load with month
+});
+</script>
+
+{% endblock %}

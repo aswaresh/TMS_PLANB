@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Tuition App</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+
+<body>
+
+<div class="sidebar">
+
+    <h2>Menu</h2>
+
+<div class="user-card">
+    <div class="avatar">👤</div>
+    <div>
+        <div id="userName">User</div>
+        <div id="userRole" class="role"></div>
+    </div>
+</div>
+
+    <ul id="menu-list"></ul>
+
+    <div style="margin-top: 20px;">
+        <a href="#" onclick="window.logout && window.logout()" style="color:white;">Logout</a>
+    </div>
+   
+</div>
+
+<!-- ✅ TOGGLE BUTTON -->
+<button class="menu-toggle" onclick="toggleSidebar()">☰</button>
+
+<div class="main-content">
+
+<!-- ✅ TOP RIGHT LOGO -->
+    <div class="top-logo">
+        <img src="/static/logo.png" alt="Logo">
+    </div>
+
+
+    {% block content %}{% endblock %}
+</div>
+
+<!-- ✅ DEVELOPED BY FOOTER -->
+<div class="footer-dev">
+    ⚙️ Developed by <b>aswaresh.r@gmail.com</b>
+</div>
+
+<!-- ✅ SCRIPT -->
+
+<script src="{{ url_for('static', filename='js/script.js') }}"></script>
+
+<script>
+
+const roles = localStorage.getItem("roles") || "";
+const roleList = roles.split(",").map(r => r.trim());
+const menu = document.getElementById("menu-list");
+
+let topItems = "";
+let bottomItems = "";
+
+// ✅ USER (TOP SECTION)
+if (roleList.includes("teacher")) {
+    topItems += `
+        <li><a href="/teacher_dashboard"><i class="fas fa-home"></i> Dashboard</a></li>
+
+        <li><a href="/teacher_calendar"><i class="fas fa-calendar"></i> Upcoming Classes</a></li>
+
+        <li><a href="/teacher_classes"><i class="fas fa-chalkboard"></i> My Classes</a></li>
+
+        <li><a href="/attendance_report"><i class="fas fa-chart-line"></i> My Students Report</a></li>
+    `;
+}
+
+if (roleList.includes("student")) {
+    topItems += `
+        <li><a href="/student_dashboard"><i class="fas fa-book"></i> My Classes</a></li>
+    `;
+}
+
+// ✅ COMMON (ALL USERS)
+if (roles) {
+    topItems += `
+        <li><a href="/change_password_page"><i class="fas fa-key"></i> Change Password</a></li>
+    `;
+}
+
+// ✅ ADMIN (BOTTOM SECTION)
+if (roleList.includes("admin")) {
+    bottomItems += `
+        <li><hr></li>
+        <li style="color:#ccc; font-size:12px;">ADMIN</li>
+
+        <li><a href="/admin_schedule"><i class="fas fa-tasks"></i> Admin Schedule</a></li>
+        <li><a href="/admin_master"><i class="fas fa-cogs"></i> Master Settings</a></li>
+        <li><a href="/admin_attendance"><i class="fas fa-clipboard-check"></i> Attendance Control</a></li>
+        <li><a href="/calendar"><i class="fas fa-calendar-alt"></i> Calendar</a></li>
+        <li><a href="/attendance_report"><i class="fas fa-chart-bar"></i> Attendance Report</a></li>
+        <li><a href="/fee_management"><i class="fas fa-money-bill-wave"></i> Fee Management</a></li>
+
+        <!-- ✅ BACKUP MENU -->
+        <li id="backup-menu"><a href="/admin_backup">📦 Backup</a></li>
+    `;
+}
+
+// ✅ FINAL MENU RENDER
+if (!roles) {
+    menu.innerHTML = `<li><a href="/login">Login</a></li>`;
+} else {
+    menu.innerHTML = topItems + bottomItems;
+}
+
+// ✅ USER INFO
+document.getElementById("userName").innerText =
+    localStorage.getItem("name") || "User";
+
+document.getElementById("userRole").innerText =
+    roles;
+
+// ✅ ✅ ✅ SAFETY CHECK FOR BACKUP MENU VISIBILITY
+const backupMenu = document.getElementById("backup-menu");
+
+if (backupMenu) {
+    if (roleList.includes("admin")) {
+        backupMenu.style.display = "block";
+    } else {
+        backupMenu.style.display = "none";
+    }
+}
+
+// ✅ ACTIVE LINK HIGHLIGHT
+const currentPath = window.location.pathname;
+
+document.querySelectorAll("#menu-list a").forEach(link => {
+    if (link.getAttribute("href") === currentPath) {
+        link.style.fontWeight = "bold";
+    }
+});
+
+</script>
+
+
+</body>
+</html>

@@ -1,0 +1,14 @@
+{% extends "base.html" %}
+
+{% block content %}
+
+<h2>📦 Backup Management</h2>
+
+<button onclick="createBackup()">Create Backup</button>
+
+<br><br>
+
+<select id="backupList"></select>
+<button onclick="restoreBackup()">Restore</button>
+
+{% endblock %}

@@ -1,0 +1,14 @@
+{% extends "base.html" %}
+
+{% block content %}
+
+<h1>Dashboard</h1>
+
+<div class="card">Total Students: {{ total_students }}</div>
+<div class="card">Attendance %: {{ attendance }}%</div>
+<div class="card">Pending Fees: {{ pending_fees }}</div>
+
+<div class="card">Pending Amount: ₹ {{ pending_amount }}</div>
+<div class="card">Collected Amount: ₹ {{ collected_amount }}</div>
+
+{% endblock %}

@@ -1,0 +1,47 @@
+{% extends "base.html" %}
+
+{% block content %}
+
+<h1>Fees</h1>
+
+<table>
+    <tr>
+        <th>ID</th>
+        <th>Student</th>
+        <th>Month</th>
+        <th>Amount</th>
+        <th>Status</th>
+        <th>Action</th>
+    </tr>
+
+    {% for f in fees %}
+    <tr id="fee-row-{{ f.id }}">
+        <td>{{ f.id }}</td>
+        <td>{{ f.student_name }}</td>
+        <td>{{ f.month }}</td>
+        <td>₹ {{ f.amount }}</td>
+
+        <!-- ✅ STATUS COLUMN -->
+        <td class="fee-status-cell">
+            {% if f.status == 'paid' %}
+                <span class="badge badge-present">Paid</span>
+            {% else %}
+                <span class="badge badge-pending">Pending</span>
+            {% endif %}
+        </td>
+
+        <!-- ✅ ACTION COLUMN -->
+        <td class="fee-action-cell">
+            {% if f.status == 'pending' %}
+                <button class="btn-present" onclick="payFee({{ f.id }})">Pay</button>
+            {% else %}
+                <span style="color: #888;">Done</span>
+            {% endif %}
+        </td>
+    </tr>
+    {% endfor %}
+
+</table>
+
+{% endblock %}
+``

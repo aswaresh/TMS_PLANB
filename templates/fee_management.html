@@ -1,0 +1,237 @@
+{% extends "base.html" %}
+
+{% block content %}
+
+<h2>💰 Fee Management</h2>
+<p style="color:#777;">Track monthly fee payments</p>
+
+<!-- ✅ FILTERS -->
+<div style="display:flex; gap:10px; margin-bottom:15px;">
+
+    <input type="month" id="feeMonth">
+
+    <select id="viewType">
+        <option value="month">Monthly</option>
+        <option value="year">Yearly</option>
+    </select>
+
+    <button onclick="loadFees()">Load</button>
+
+</div>
+
+<!-- ✅ SUMMARY CARDS -->
+<div class="dashboard-grid">
+
+    <div class="dashboard-card total">
+        <div class="card-icon">📊</div>
+        <div>
+            <div class="card-title">Total Expected</div>
+            <div class="card-value" id="totalExpected">0</div>
+        </div>
+    </div>
+
+    <div class="dashboard-card completed">
+        <div class="card-icon">💰</div>
+        <div>
+            <div class="card-title">Received</div>
+            <div class="card-value" id="totalReceived">0</div>
+        </div>
+    </div>
+
+    <div class="dashboard-card pending">
+        <div class="card-icon">⚠</div>
+        <div>
+            <div class="card-title">Pending</div>
+            <div class="card-value" id="totalPending">0</div>
+        </div>
+    </div>
+
+</div>
+
+<!-- ✅ TABLE -->
+<table border="1" cellpadding="10" style="margin-top:15px;">
+    <tr>
+        <th>Student</th>
+        <th>Month</th>
+        <th>Amount</th>
+        <th>Due Date</th>
+        <th>Paid On</th>
+        <th>Ref No</th>
+        <th>Status</th>
+        <th>Action</th>
+    </tr>
+
+    <tbody id="fee-table"></tbody>
+</table>
+
+<!-- ✅ PAYMENT MODAL -->
+<div id="paymentModal" style="display:none; position:fixed; top:20%; left:40%; background:#fff; padding:20px; border-radius:8px; box-shadow:0 0 10px #aaa;">
+
+    <h3>Mark Payment</h3>
+
+    <input type="date" id="paidOn"><br><br>
+
+    <input type="text" id="refNo" placeholder="Reference No"><br><br>
+
+    <button onclick="submitPayment()">Save</button>
+    <button onclick="closeModal()">Cancel</button>
+
+</div>
+
+<script>
+let selectedFeeId = null;
+
+function formatDate(dateStr) {
+    if (!dateStr) return "-";
+
+    const d = new Date(dateStr);
+
+    const mm = String(d.getMonth() + 1).padStart(2, '0');
+    const dd = String(d.getDate()).padStart(2, '0');
+    const yyyy = d.getFullYear();
+
+    return `${mm}-${dd}-${yyyy}`;
+}
+
+function formatMonth(monthStr) {
+    const d = new Date(monthStr + "-01");
+
+    return d.toLocaleString('en-US', {
+        month: 'short',
+        year: 'numeric'
+    });
+}
+
+// ✅ LOAD FEES
+function loadFees() {
+
+    const month = document.getElementById("feeMonth").value;
+    const view = document.getElementById("viewType").value;
+
+    let url = "/api/fees";
+
+    if (view === "month" && month) {
+        url += `?month=${month}`;
+    } else if (view === "year" && month) {
+        const year = month.split("-")[0];
+        url += `?year=${year}`;
+    }
+
+    // ✅ generate missing records
+    fetch('/api/generate_fees', { method: 'POST' });
+
+    fetch(url)
+    .then(res => res.json())
+    .then(data => {
+
+        let rows = "";
+
+        data.forEach(f => {
+
+            let statusColor = f.status === "paid" ? "green" : "orange";
+
+            rows += `
+            <tr>
+                <td>${f.student}</td>
+                <td>${formatMonth(f.month)}</td>
+                <td>${f.amount}</td>
+                <td>${formatDate(f.due_date)}</td>
+                <td>${formatDate(f.paid_on)}</td>
+                <td>${f.reference_no || "-"}</td>
+                <td style="color:${statusColor}; font-weight:bold;">
+                    ${f.status}
+                </td>
+                <td>
+                    ${f.status === "pending"
+                        ? `<button onclick="openModal(${f.id})">Pay</button>`
+                        : "✅"
+                    }
+                </td>
+            </tr>
+            `;
+        });
+
+        document.getElementById("fee-table").innerHTML = rows;
+    });
+
+    loadSummary();
+}
+
+// ✅ SUMMARY
+function loadSummary() {
+
+    const month = document.getElementById("feeMonth").value;
+    const view = document.getElementById("viewType").value;
+
+    let url = "/api/fees_summary";
+
+    if (view === "month" && month) {
+        url += `?month=${month}`;
+    } else if (view === "year" && month) {
+        const year = month.split("-")[0];
+        url += `?year=${year}`;
+    }
+
+    fetch(url)
+    .then(res => res.json())
+    .then(data => {
+
+        document.getElementById("totalExpected").innerText = data.total_expected;
+        document.getElementById("totalReceived").innerText = data.total_received;
+        document.getElementById("totalPending").innerText = data.total_pending;
+
+    });
+}
+
+// ✅ OPEN MODAL
+function openModal(id) {
+    selectedFeeId = id;
+
+    document.getElementById("paymentModal").style.display = "block";
+
+    // default today
+    document.getElementById("paidOn").value = new Date().toISOString().slice(0,10);
+}
+
+// ✅ CLOSE MODAL
+function closeModal() {
+    document.getElementById("paymentModal").style.display = "none";
+}
+
+// ✅ SUBMIT PAYMENT
+function submitPayment() {
+
+    const paidOn = document.getElementById("paidOn").value;
+    const refNo = document.getElementById("refNo").value;
+
+    fetch(`/api/pay_fee/${selectedFeeId}`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+            paid_on: paidOn,
+            reference_no: refNo
+        })
+    })
+    .then(res => res.json())
+    .then(() => {
+
+        closeModal();
+        loadFees();  // refresh
+
+    });
+}
+
+// ✅ INIT
+document.addEventListener("DOMContentLoaded", function() {
+
+    const monthInput = document.getElementById("feeMonth");
+
+    if (monthInput) {
+        monthInput.value = new Date().toISOString().slice(0,7);
+    }
+
+    loadFees();
+});
+</script>
+
+{% endblock %}

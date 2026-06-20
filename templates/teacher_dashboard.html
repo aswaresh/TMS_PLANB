@@ -1,0 +1,82 @@
+{% extends "base.html" %}
+
+{% block content %}
+
+<h1 style="margin-bottom:5px;">👋 Welcome, <span id="teacher-name"></span></h1>
+<p style="color:#777;">Here is your monthly class summary</p>
+
+<input type="month" id="dashboardMonth"
+       style="padding:8px; border-radius:6px; border:1px solid #ccc; margin-top:10px;">
+
+<div class="dashboard-grid">
+
+    <!-- ✅ TOTAL -->
+    <div class="dashboard-card total">
+        <div class="card-icon">📚</div>
+        <div>
+            <div class="card-title">Total Classes</div>
+            <div class="card-value" id="total">0</div>
+        </div>
+    </div>
+
+    <!-- ✅ COMPLETED (present + absent) -->
+    <div class="dashboard-card completed">
+        <div class="card-icon">✅</div>
+        <div>
+            <div class="card-title">Completed</div>
+            <div class="card-value" id="completed">0</div>
+        </div>
+    </div>
+
+    <!-- ✅ PENDING -->
+    <div class="dashboard-card pending">
+        <div class="card-icon">🟠</div>
+        <div>
+            <div class="card-title">Pending</div>
+            <div class="card-value" id="pending">0</div>
+        </div>
+    </div>
+
+    <!-- ✅ CANCELLED -->
+    <div class="dashboard-card pending">
+        <div class="card-icon">❌</div>
+        <div>
+            <div class="card-title">Cancelled</div>
+            <div class="card-value" id="cancelled">0</div>
+        </div>
+    </div>
+
+</div>
+
+<script>
+document.addEventListener("DOMContentLoaded", function() {
+
+    // ✅ Set teacher name
+    const nameEl = document.getElementById("teacher-name");
+    if (nameEl) {
+        nameEl.innerText = localStorage.getItem("name") || "";
+    }
+
+    // ✅ Set default month
+    const monthInput = document.getElementById("dashboardMonth");
+    const today = new Date();
+    const month = today.toISOString().slice(0, 7);
+
+    if (monthInput && !monthInput.value) {
+        monthInput.value = month;
+    }
+
+    // ✅ Load stats on page load
+    loadTeacherStats();
+
+    // ✅ ✅ FIX: Month change triggers reload
+    if (monthInput) {
+        monthInput.addEventListener("change", function() {
+            loadTeacherStats();
+        });
+    }
+
+});
+</script>
+
+{% endblock %}

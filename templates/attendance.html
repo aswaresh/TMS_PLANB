@@ -1,0 +1,49 @@
+{% extends "base.html" %}
+
+{% block content %}
+
+<h1>Attendance</h1>
+
+<table>
+    <tr>
+        <th>ID</th>
+        <th>Student</th>
+        <th>Date</th>
+        <th>Time</th>
+        <th>Status</th>
+        <th>Action</th>
+    </tr>
+
+    {% for c in classes %}
+    <tr id="row-{{ c.id }}">
+        <td>{{ c.id }}</td>
+        <td>{{ c.student_name }}</td>
+        <td>{{ c.date }}</td>
+        <td>{{ c.time }}</td>
+
+        <!-- ✅ STATUS COLUMN -->
+        <td class="status-cell">
+            {% if c.attendance == 'present' %}
+                <span class="badge badge-present">Present</span>
+            {% elif c.attendance == 'absent' %}
+                <span class="badge badge-absent">Absent</span>
+            {% else %}
+                <span class="badge badge-pending">Pending</span>
+            {% endif %}
+        </td>
+
+        <!-- ✅ ACTION COLUMN -->
+        <td class="action-cell">
+            {% if c.attendance == 'pending' %}
+                <button class="btn-present" onclick="markAttendance({{ c.id }}, 'present')">Present</button>
+                <button class="btn-absent" onclick="markAttendance({{ c.id }}, 'absent')">Absent</button>
+            {% else %}
+                <button class="btn-edit" onclick="markAttendance({{ c.id }}, 'pending')">Edit</button>
+            {% endif %}
+        </td>
+    </tr>
+    {% endfor %}
+
+</table>
+
+{% endblock %}
