@@ -710,13 +710,16 @@ def add_teacher():
     # ✅ CREATE TEACHER
     subjects = data.get('subjects', [])
     subjects = list(set(subjects))
+    standard_id = data.get('standard_id')
+        if not standard_id:
+           standard_id = None
     teacher = Teacher(
         name=data['name'],
         qualification=data['qualification'],
         experience=data['experience'],
         phone=data['phone'],
         email=data['email'],
-        standard_id = data.get('standard_id'),
+        standard_id=standard_id,
         user_id=user.id
     )
     teacher.subjects = ",".join(subjects)
@@ -762,8 +765,8 @@ def delete_teacher(id):
         return jsonify({"message": "Teacher not found"}), 404
 
     # ✅ DELETE LINKED USER
-    db.session.delete(teacher)
     user = User.query.get(teacher.user_id)
+    db.session.delete(teacher)
     if user:
         db.session.delete(user)
     db.session.commit()
@@ -788,7 +791,12 @@ def update_teacher(id):
     teacher.experience = data['experience']
     teacher.phone = data['phone']
     teacher.email = data['email']
-    teacher.standard_id = data['standard_id']
+    standard_id = data.get('standard_id')
+
+    if not standard_id:
+        teacher.standard_id = None
+    else:
+        teacher.standard_id = int(standard_id)
 
     subjects = data.get('subjects', [])
     subjects = list(set(subjects))
@@ -799,9 +807,13 @@ def update_teacher(id):
         if user:
             user.password = generate_password_hash(data['password'])
 
-    db.session.commit()
+    try:
+        db.session.commit()
+        return jsonify({"message": "Teacher updated successfully"}), 200
 
-    return jsonify({"message": "Teacher updated successfully"})
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({"error": str(e)}), 500
 
 
 from datetime import datetime, timedelta
