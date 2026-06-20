@@ -652,7 +652,7 @@ input {
 }
 
 .top-logo img {
-    width: 80px;     /* ✅ adjust size */
+    width: 180px;     /* ✅ adjust size */
     height: auto;
 }
 
