@@ -718,7 +718,8 @@ window.createSchedule = function() {
             subject: subject,
             days: days,
             time: time,
-            is_recurring: document.getElementById("isRecurring").checked
+            is_recurring: document.getElementById("isRecurring").checked,
+            is_online: document.getElementById("isOnlineClass")?.checked || false
         })
     })   
     .then(res => {
