@@ -384,7 +384,11 @@ def teacher_classes(teacher_id):
             "time": c.time,
             "status": c.status,
             "attendance": c.attendance,
-            "subject": c.subject
+            "subject": c.subject,    
+            "is_online": c.is_online,
+            "join_url": c.join_url,
+            "start_url": c.start_url
+
         })
 
     return jsonify(data)
@@ -409,7 +413,9 @@ def student_classes(user_id):
             "date": c.date,
             "time": c.time,
             "status": c.attendance,
-            "subject": c.subject
+            "subject": c.subject,       
+            "is_online": c.is_online,
+            "join_url": c.join_url
         })
 
     return jsonify(data)
