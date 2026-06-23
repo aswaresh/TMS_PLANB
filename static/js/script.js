@@ -1849,24 +1849,46 @@ window.loadTeacherClasses = function() {
                 </td>
 
                 <!-- ✅ ATTENDANCE + BUTTON -->
-                <td style="display:flex; gap:10px; align-items:center;">
-                   <select id="att-${c.class_id}" style="width:150px;" ${c.attendance !== "pending" ? "disabled" : ""}>
-                       <option value="">Select Attendance</option>
-                       <option value="present" ${c.attendance === "present" ? "selected" : ""}>Present</option>
-                       <option value="absent" ${c.attendance === "absent" ? "selected" : ""}>Absent</option>
-                   </select>
+                <td style="display:flex; flex-direction:column; gap:6px;">
 
-                    <br><br>
+                    <!-- ✅ ATTENDANCE -->
+                    <div style="display:flex; gap:10px;">
+                        <select id="att-${c.class_id}" style="width:150px;" ${c.attendance !== "pending" ? "disabled" : ""}>
+                            <option value="">Select Attendance</option>
+                            <option value="present" ${c.attendance === "present" ? "selected" : ""}>Present</option>
+                            <option value="absent" ${c.attendance === "absent" ? "selected" : ""}>Absent</option>
+                        </select>
 
+                        ${
+                            c.attendance === "pending"
+                            ? `<button onclick="updateAttendance(${c.class_id})">Save</button>`
+                            : `<button onclick="enableEdit(${c.class_id})">Edit</button>`
+                        }
+                    </div>
+
+                    <!-- ✅ ✅ ZOOM BUTTONS -->
                     ${
-                        c.attendance === "pending"
-                        ? `<button onclick="updateAttendance(${c.class_id})" id="save-${c.class_id}">
-                                Save
-                           </button>`
-                        : `<button onclick="enableEdit(${c.class_id})" id="edit-${c.class_id}">
-                                Edit
-                           </button>`
+                        c.is_online
+                        ? `
+                        <div style="display:flex; gap:10px;">
+                            <button style="background:#28a745;color:white;"
+                                onclick="window.open('${c.start_url}')">
+                                ▶ Start
+                            </button>
+
+                            <button style="background:#6c757d;color:white;"
+                                onclick="navigator.clipboard.writeText('${c.join_url}')">
+                                📋 Copy
+                            </button>
+                        </div>
+
+                        <div style="font-size:11px;color:#888;">
+                            ⚠ 40 min limit
+                        </div>
+                        `
+                        : ""
                     }
+
                 </td>
             </tr>
             `;
