@@ -1946,6 +1946,17 @@ window.loadStudentClasses = function() {
                         ? `<span style="color:red; font-weight:bold;">Absent</span>`
                         : `<span style="color:orange; font-weight:bold;">Pending</span>`
                     }
+
+                    <!-- ✅ ✅ ZOOM BUTTON -->
+                    ${
+                        c.is_online
+                        ? `<br><br>
+                           <button style="background:#007bff;color:white;"
+                               onclick="window.open('${c.join_url}')">
+                               🔗 Join Class
+                           </button>`
+                        : ""
+                    }
                 </td>
             </tr>
             `;
