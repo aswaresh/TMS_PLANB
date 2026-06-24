@@ -840,6 +840,32 @@ def is_overlap(start1, end1, start2, end2):
 
     return max(s1, s2) < min(e1, e2)
 
+
+def get_next_date(day_name):
+    days_map = {
+        "Monday": 0,
+        "Tuesday": 1,
+        "Wednesday": 2,
+        "Thursday": 3,
+        "Friday": 4,
+        "Saturday": 5,
+        "Sunday": 6
+    }
+
+    today = datetime.today()
+    today_weekday = today.weekday()
+
+    target_day = days_map[day_name]
+
+    days_ahead = target_day - today_weekday
+
+    if days_ahead <= 0:
+        days_ahead += 7
+
+    next_date = today + timedelta(days=days_ahead)
+
+    return next_date.strftime("%Y-%m-%d")
+
 @auth_bp.route('/add_schedule', methods=['POST'])
 def add_schedule():
 
