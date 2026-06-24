@@ -29,7 +29,9 @@ class Class(db.Model):
     status = db.Column(db.String(20), default="scheduled")
     attendance = db.Column(db.String(20), default="pending")
     rule_id = db.Column(db.Integer)
-
+    is_online = db.Column(db.Boolean, default=False)
+    join_url = db.Column(db.Text)
+    start_url = db.Column(db.Text)    
 
 class Fee(db.Model):
     __tablename__ = "fees"
