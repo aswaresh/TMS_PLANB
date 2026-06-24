@@ -845,20 +845,24 @@ def add_schedule():
 
     from models import ScheduleRule, Class
     from datetime import datetime
+    import requests
+    import os
 
     data = request.get_json()
 
+    print("FULL DATA RECEIVED:", data)
+
+    # ✅ Extract data
     student_id = data['student_id']
     teacher_id = data['teacher_id']
     subject = data['subject']
     days = data['days']
     time = data['time']
-
-    # ✅ default
     is_recurring = data.get('is_recurring', False)
+    is_online = data.get("is_online", False)
 
-    print("DEBUG teacher_id received:", teacher_id)
-    print("DEBUG is_recurring:", is_recurring)
+    print("is_online:", is_online)
+    print("ZOOM TOKEN:", os.getenv("ZOOM_TOKEN"))
 
     # ✅ TIME SPLIT
     new_start, new_end = time.split(" - ")
@@ -889,7 +893,7 @@ def add_schedule():
             if is_overlap(new_start, new_end, old_start, old_end):
                 return jsonify({"message": "Teacher not available (time overlap)"}), 400
 
-    # ✅ SAVE RULE
+    # ✅ CREATE RULE
     rule = ScheduleRule(
         student_id=student_id,
         teacher_id=teacher_id,
@@ -900,14 +904,13 @@ def add_schedule():
     )
 
     db.session.add(rule)
-    db.session.commit()
+    db.session.flush()  # ✅ get rule.id before commit
 
-    # ✅  ALWAYS CREATE ONLY ONE CLASS
-
+    # ✅ CREATE FIRST CLASS
     first_day = days[0]
     class_date = get_next_date(first_day)
 
-    # ✅ avoid duplicate (very important)
+    # ✅ avoid duplicate
     exists = Class.query.filter_by(
         student_id=student_id,
         teacher_id=teacher_id,
@@ -916,21 +919,68 @@ def add_schedule():
         time=time
     ).first()
 
-    if not exists:
-        new_class = Class(
-            student_id=student_id,
-            teacher_id=teacher_id,
-            subject=subject,
-            date=class_date,
-            time=time,
-            status="scheduled",
-            rule_id=rule.id   # ✅ IMPORTANT (link rule)
-        )
+    if exists:
+        return jsonify({"message": "Class already exists"}), 400
 
-        db.session.add(new_class)
-        db.session.commit()
-        create_backup()
+    new_class = Class(
+        student_id=student_id,
+        teacher_id=teacher_id,
+        subject=subject,
+        date=class_date,
+        time=time,
+        status="scheduled",
+        rule_id=rule.id
+    )
+
+    # ✅ ZOOM INTEGRATION
+    if is_online:
+        print("✅ Creating Zoom meeting...")
+
+        token = os.getenv("ZOOM_TOKEN")
+
+        url = "https://api.zoom.us/v2/users/me/meetings"
+
+        headers = {
+            "Authorization": f"Bearer {token}",
+            "Content-Type": "application/json"
+        }
+
+        payload = {
+            "topic": f"{subject} Class",
+            "type": 2,
+            "start_time": "2026-06-25T10:00:00",  # ✅ later make dynamic
+            "duration": 60,
+            "timezone": "Asia/Kolkata",
+            "settings": {
+                "join_before_host": True
+            }
+        }
+
+        response = requests.post(url, json=payload, headers=headers)
+
+        print("ZOOM RESPONSE:", response.text)
+
+        if response.status_code == 201:
+            zoom_data = response.json()
+
+            new_class.is_online = True
+            new_class.join_url = zoom_data.get("join_url")
+            new_class.start_url = zoom_data.get("start_url")
+
+            print("✅ Zoom Created:", new_class.join_url)
+
+        else:
+            print("❌ Zoom Error:", response.text)
+
+    # ✅ SAVE EVERYTHING
+    db.session.add(new_class)
+    db.session.commit()
+
+    # ✅ BACKUP
+    create_backup()
+
     return jsonify({"message": "Schedule created successfully"})
+
 
 from datetime import datetime, timedelta
 
