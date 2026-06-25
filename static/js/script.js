@@ -8,7 +8,44 @@ window.getDate = function(dayOffset) {
     return today.toISOString().split('T')[0];
 };
 
+function updateStartDate() {
 
+    const selectedDays = Array.from(document.querySelectorAll(".day-checkbox:checked"))
+        .map(cb => cb.value);
+
+    if (selectedDays.length === 0) {
+        document.getElementById("startDateDisplay").innerText = "";
+        return;
+    }
+
+    const today = new Date();
+
+    const daysMap = {
+        "Sunday": 0,
+        "Monday": 1,
+        "Tuesday": 2,
+        "Wednesday": 3,
+        "Thursday": 4,
+        "Friday": 5,
+        "Saturday": 6
+    };
+
+    let diff = daysMap[selectedDays[0]] - today.getDay();
+    if (diff < 0) diff += 7;
+
+    const nextDate = new Date();
+    nextDate.setDate(today.getDate() + diff);
+
+    // ✅ FORMAT FIX
+    const day = String(nextDate.getDate()).padStart(2, '0');
+    const month = String(nextDate.getMonth() + 1).padStart(2, '0');
+    const year = nextDate.getFullYear();
+
+    const formatted = `${day}-${month}-${year}`;
+
+    document.getElementById("startDateDisplay").innerText =
+        "📅 Starts from: " + formatted;
+}
 
 window.createBackup = function() {
 
@@ -1789,26 +1826,24 @@ window.loadTeacherClasses = function() {
     .then(res => res.json())
     .then(data => {
 
-        const month = document.getElementById("monthFilter")?.value
-                    || new Date().toISOString().slice(0, 7);
+    const month = document.getElementById("monthFilter")?.value
+                || new Date().toISOString().slice(0, 7);
+    const search = document.getElementById("studentSearch")?.value?.toLowerCase() || "";
 
-        const search = document.getElementById("studentSearch")?.value?.toLowerCase() || "";
+    let filtered = data;
 
-        let filtered = data;
-
-        // ✅ search by subject
-        if (search) {
-            filtered = data.filter(c =>
-                (c.subject || "").toLowerCase().includes(search)
-            );
-        }
-        else if (month) {
-            filtered = data.filter(c => c.date.startsWith(month));
-        }
+    // ✅ search by subject (teacher view)
+    if (search) {
+        filtered = data.filter(c =>
+            (c.subject || "").toLowerCase().includes(search)
+        );
+    }
+    else if (month) {
+        filtered = data.filter(c => c.date.startsWith(month));
+    }
 
         let rows = "";
 
-        // ✅ sorting (future first)
         filtered.sort((a, b) => {
             const today = new Date().toISOString().split("T")[0];
             if (a.date >= today && b.date < today) return -1;
@@ -1817,45 +1852,22 @@ window.loadTeacherClasses = function() {
         });
 
         filtered.forEach(c => {
-
-            // ✅ CANCELLED CASE
+            
             if (c.status === "cancelled") {
-                rows += `
-                <tr>
-                    <td>${c.student}</td>
-                    <td>${c.subject || "-"}</td>
-                    <td>${formatDateWithDay(c.date)}</td>
-                    <td>${c.time}</td>
-                    <td colspan="2" style="color:red; font-weight:bold;">
-                        Cancelled
-                    </td>
-                </tr>
-                `;
-                return;
-            }
+                    rows += `
+                    <tr>
+                        <td>${c.student}</td>
+                        <td>${c.subject || "-"}</td>
+                        <td>${formatDateWithDay(c.date)}</td>
+                        <td>${c.time}</td>
 
-            // ✅ ZOOM BUTTON BLOCK (SAFE)
-            let zoomButtons = "";
-
-            if (c.is_online && c.start_url) {
-                zoomButtons = `
-                    <div style="display:flex; gap:10px;">
-                        <button style="background:#28a745;color:white;border:none;padding:5px 10px;cursor:pointer;"
-                            onclick="window.open('${c.start_url}', '_blank')">
-                            ▶ Start
-                        </button>
-
-                        <button style="background:#6c757d;color:white;border:none;padding:5px 10px;cursor:pointer;"
-                            onclick="navigator.clipboard.writeText('${c.join_url}')">
-                            📋 Copy
-                        </button>
-                    </div>
-
-                    <div style="font-size:11px;color:#888;">
-                        ⚠ 40 min limit
-                    </div>
-                `;
-            }
+                        <td colspan="2" style="color:red; font-weight:bold;">
+                            Cancelled
+                        </td>
+                    </tr>
+                    `;
+                    return;  // ✅ VERY IMPORTANT (skip rest)
+                }
 
             rows += `
             <tr>
@@ -1864,10 +1876,9 @@ window.loadTeacherClasses = function() {
                 <td>${formatDateWithDay(c.date)}</td>
                 <td>${c.time}</td>
 
-                <!-- ✅ STATUS -->
+                <!-- ✅ STATUS COLUMN -->
                 <td id="status-${c.class_id}">
-                    ${
-                        c.attendance === "present"
+                    ${c.attendance === "present"
                         ? `<span style="color:green;">Present</span>`
                         : c.attendance === "absent"
                         ? `<span style="color:red;">Absent</span>`
@@ -1875,7 +1886,7 @@ window.loadTeacherClasses = function() {
                     }
                 </td>
 
-                <!-- ✅ ACTION -->
+                <!-- ✅ ATTENDANCE + BUTTON -->
                 <td style="display:flex; flex-direction:column; gap:6px;">
 
                     <!-- ✅ ATTENDANCE -->
@@ -1893,8 +1904,28 @@ window.loadTeacherClasses = function() {
                         }
                     </div>
 
-                    <!-- ✅ ZOOM -->
-                    ${zoomButtons}
+                    <!-- ✅ ✅ ZOOM BUTTONS -->
+                    ${
+                        c.is_online
+                        ? `
+                        <div style="display:flex; gap:10px;">
+                            <button style="background:#28a745;color:white;"
+                                onclick="window.open('${c.start_url}')">
+                                ▶ Start
+                            </button>
+
+                            <button style="background:#6c757d;color:white;"
+                                onclick="navigator.clipboard.writeText('${c.join_url}')">
+                                📋 Copy
+                            </button>
+                        </div>
+
+                        <div style="font-size:11px;color:#888;">
+                            ⚠ 40 min limit
+                        </div>
+                        `
+                        : ""
+                    }
 
                 </td>
             </tr>
@@ -1913,20 +1944,20 @@ window.loadStudentClasses = function() {
     .then(res => res.json())
     .then(data => {
 
-        const month = document.getElementById("classMonthFilter")?.value;
-        const search = document.getElementById("studentSearch")?.value?.toLowerCase() || "";
+    const month = document.getElementById("classMonthFilter")?.value;
+    const search = document.getElementById("studentSearch")?.value?.toLowerCase() || "";
 
-        let filtered = data;
+    let filtered = data;
 
-        // ✅ search by subject
-        if (search) {
-            filtered = data.filter(c =>
-                (c.subject || "").toLowerCase().includes(search)
-            );
-        }
-        else if (month) {
-            filtered = data.filter(c => c.date.startsWith(month));
-        }
+    // ✅ search by subject (teacher view)
+    if (search) {
+        filtered = data.filter(c =>
+            (c.subject || "").toLowerCase().includes(search)
+        );
+    }
+    else if (month) {
+        filtered = data.filter(c => c.date.startsWith(month));
+    }
 
         let rows = "";
 
@@ -1935,32 +1966,10 @@ window.loadStudentClasses = function() {
                 "<tr><td colspan='4'>No classes assigned</td></tr>";
             return;
         }
-
-        // ✅ sort by date
+  
         filtered.sort((a, b) => a.date.localeCompare(b.date));
 
         filtered.forEach(c => {
-
-            // ✅ JOIN BUTTON BLOCK (SAFE)
-            let joinButton = "";
-
-            if (c.is_online && c.join_url) {
-                joinButton = `
-                    <button style="background:#007bff;color:white;border:none;padding:5px 10px;cursor:pointer;"
-                        onclick="window.open('${c.join_url}', '_blank')">
-                        🔗 Join Class
-                    </button>
-
-                    <button style="background:#6c757d;color:white;border:none;padding:5px 10px;cursor:pointer;margin-left:8px;"
-                        onclick="navigator.clipboard.writeText('${c.join_url}')">
-                        📋 Copy
-                    </button>
-
-                    <div style="font-size:11px;color:#888;margin-top:3px;">
-                        ⚠ 40 min limit
-                    </div>
-                `;
-            }
 
             rows += `
             <tr>
@@ -1969,16 +1978,23 @@ window.loadStudentClasses = function() {
                 <td>${c.time}</td>             
 
                 <td>
-                    ${
-                        c.status === "present"
+                    ${c.status === "present"
                         ? `<span style="color:green; font-weight:bold;">Present</span>`
                         : c.status === "absent"
                         ? `<span style="color:red; font-weight:bold;">Absent</span>`
                         : `<span style="color:orange; font-weight:bold;">Pending</span>`
                     }
 
-                    <!-- ✅ ZOOM BUTTON -->
-                    ${joinButton}
+                    <!-- ✅ ✅ ZOOM BUTTON -->
+                    ${
+                        c.is_online
+                        ? `<br><br>
+                           <button style="background:#007bff;color:white;"
+                               onclick="window.open('${c.join_url}')">
+                               🔗 Join Class
+                           </button>`
+                        : ""
+                    }
                 </td>
             </tr>
             `;
@@ -2325,6 +2341,16 @@ window.addEventListener("DOMContentLoaded", function() {
  
 });
 
+
+document.addEventListener("DOMContentLoaded", function () {
+
+    console.log("✅ binding checkbox events");
+
+    document.querySelectorAll(".day-checkbox").forEach(cb => {
+        cb.addEventListener("change", updateStartDate);
+    });
+
+});
 
 let logoutTimer;
 
