@@ -8,7 +8,44 @@ window.getDate = function(dayOffset) {
     return today.toISOString().split('T')[0];
 };
 
+function updateStartDate() {
 
+    const selectedDays = Array.from(document.querySelectorAll(".day-checkbox:checked"))
+        .map(cb => cb.value);
+
+    if (selectedDays.length === 0) {
+        document.getElementById("startDateDisplay").innerText = "";
+        return;
+    }
+
+    const today = new Date();
+
+    const daysMap = {
+        "Sunday": 0,
+        "Monday": 1,
+        "Tuesday": 2,
+        "Wednesday": 3,
+        "Thursday": 4,
+        "Friday": 5,
+        "Saturday": 6
+    };
+
+    let diff = daysMap[selectedDays[0]] - today.getDay();
+    if (diff < 0) diff += 7;
+
+    const nextDate = new Date();
+    nextDate.setDate(today.getDate() + diff);
+
+    // ✅ FORMAT FIX
+    const day = String(nextDate.getDate()).padStart(2, '0');
+    const month = String(nextDate.getMonth() + 1).padStart(2, '0');
+    const year = nextDate.getFullYear();
+
+    const formatted = `${day}-${month}-${year}`;
+
+    document.getElementById("startDateDisplay").innerText =
+        "📅 Starts from: " + formatted;
+}
 
 window.createBackup = function() {
 
@@ -718,7 +755,8 @@ window.createSchedule = function() {
             subject: subject,
             days: days,
             time: time,
-            is_recurring: document.getElementById("isRecurring").checked
+            is_recurring: document.getElementById("isRecurring").checked,
+            is_online: document.getElementById("isOnlineClass")?.checked || false
         })
     })   
     .then(res => {
@@ -1849,24 +1887,46 @@ window.loadTeacherClasses = function() {
                 </td>
 
                 <!-- ✅ ATTENDANCE + BUTTON -->
-                <td style="display:flex; gap:10px; align-items:center;">
-                   <select id="att-${c.class_id}" style="width:150px;" ${c.attendance !== "pending" ? "disabled" : ""}>
-                       <option value="">Select Attendance</option>
-                       <option value="present" ${c.attendance === "present" ? "selected" : ""}>Present</option>
-                       <option value="absent" ${c.attendance === "absent" ? "selected" : ""}>Absent</option>
-                   </select>
+                <td style="display:flex; flex-direction:column; gap:6px;">
 
-                    <br><br>
+                    <!-- ✅ ATTENDANCE -->
+                    <div style="display:flex; gap:10px;">
+                        <select id="att-${c.class_id}" style="width:150px;" ${c.attendance !== "pending" ? "disabled" : ""}>
+                            <option value="">Select Attendance</option>
+                            <option value="present" ${c.attendance === "present" ? "selected" : ""}>Present</option>
+                            <option value="absent" ${c.attendance === "absent" ? "selected" : ""}>Absent</option>
+                        </select>
 
+                        ${
+                            c.attendance === "pending"
+                            ? `<button onclick="updateAttendance(${c.class_id})">Save</button>`
+                            : `<button onclick="enableEdit(${c.class_id})">Edit</button>`
+                        }
+                    </div>
+
+                    <!-- ✅ ✅ ZOOM BUTTONS -->
                     ${
-                        c.attendance === "pending"
-                        ? `<button onclick="updateAttendance(${c.class_id})" id="save-${c.class_id}">
-                                Save
-                           </button>`
-                        : `<button onclick="enableEdit(${c.class_id})" id="edit-${c.class_id}">
-                                Edit
-                           </button>`
+                        c.is_online
+                        ? `
+                        <div style="display:flex; gap:10px;">
+                            <button style="background:#28a745;color:white;"
+                                onclick="window.open('${c.start_url}')">
+                                ▶ Start
+                            </button>
+
+                            <button style="background:#6c757d;color:white;"
+                                onclick="navigator.clipboard.writeText('${c.join_url}')">
+                                📋 Copy
+                            </button>
+                        </div>
+
+                        <div style="font-size:11px;color:#888;">
+                            ⚠ 40 min limit
+                        </div>
+                        `
+                        : ""
                     }
+
                 </td>
             </tr>
             `;
@@ -1923,6 +1983,17 @@ window.loadStudentClasses = function() {
                         : c.status === "absent"
                         ? `<span style="color:red; font-weight:bold;">Absent</span>`
                         : `<span style="color:orange; font-weight:bold;">Pending</span>`
+                    }
+
+                    <!-- ✅ ✅ ZOOM BUTTON -->
+                    ${
+                        c.is_online
+                        ? `<br><br>
+                           <button style="background:#007bff;color:white;"
+                               onclick="window.open('${c.join_url}')">
+                               🔗 Join Class
+                           </button>`
+                        : ""
                     }
                 </td>
             </tr>
@@ -2270,6 +2341,16 @@ window.addEventListener("DOMContentLoaded", function() {
  
 });
 
+
+document.addEventListener("DOMContentLoaded", function () {
+
+    console.log("✅ binding checkbox events");
+
+    document.querySelectorAll(".day-checkbox").forEach(cb => {
+        cb.addEventListener("change", updateStartDate);
+    });
+
+});
 
 let logoutTimer;
 

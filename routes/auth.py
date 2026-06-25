@@ -11,12 +11,54 @@ from werkzeug.security import check_password_hash
 from models import Teacher, User
 from utils.backup import create_backup
 
+
+
 MAX_FUTURE_CLASSES = 1
 
 auth_bp = Blueprint('auth', __name__)
 bcrypt = Bcrypt()
 
 from models import PendingStudent
+
+
+import base64
+import requests
+import os
+
+def get_zoom_access_token():
+    import os
+    import base64
+    import requests
+
+    print("🔁 Fetching Zoom access token...")
+
+    account_id = os.getenv("ZOOM_ACCOUNT_ID")
+    client_id = os.getenv("ZOOM_CLIENT_ID")
+    client_secret = os.getenv("ZOOM_CLIENT_SECRET")
+
+    credentials = f"{client_id}:{client_secret}"
+    encoded_credentials = base64.b64encode(credentials.encode()).decode()
+
+    url = f"https://zoom.us/oauth/token?grant_type=account_credentials&account_id={account_id}"
+
+    headers = {
+        "Authorization": f"Basic {encoded_credentials}",
+        "Content-Type": "application/x-www-form-urlencoded"
+    }
+
+    try:
+        response = requests.post(url, headers=headers, timeout=10)
+
+        if response.status_code == 200:
+            return response.json().get("access_token")
+        else:
+            print("❌ Failed to get Zoom token:", response.text)
+            return None
+
+    except Exception as e:
+        print("❌ Exception while fetching token:", str(e))
+        return None
+
 
 @auth_bp.route('/register', methods=['POST'])
 def register():
@@ -384,7 +426,11 @@ def teacher_classes(teacher_id):
             "time": c.time,
             "status": c.status,
             "attendance": c.attendance,
-            "subject": c.subject
+            "subject": c.subject,    
+            "is_online": c.is_online,
+            "join_url": c.join_url,
+            "start_url": c.start_url
+
         })
 
     return jsonify(data)
@@ -409,7 +455,9 @@ def student_classes(user_id):
             "date": c.date,
             "time": c.time,
             "status": c.attendance,
-            "subject": c.subject
+            "subject": c.subject,       
+            "is_online": c.is_online,
+            "join_url": c.join_url
         })
 
     return jsonify(data)
@@ -834,25 +882,80 @@ def is_overlap(start1, end1, start2, end2):
 
     return max(s1, s2) < min(e1, e2)
 
+from datetime import datetime, timedelta
+
+# ✅ ADD HERE (top of file)
+from datetime import datetime, timedelta
+
+def get_next_date(day_name, time_range=None):
+
+    days_map = {
+        "Monday": 0,
+        "Tuesday": 1,
+        "Wednesday": 2,
+        "Thursday": 3,
+        "Friday": 4,
+        "Saturday": 5,
+        "Sunday": 6
+    }
+
+    today = datetime.today()
+    today_weekday = today.weekday()
+
+    target_day = days_map[day_name]
+
+    days_ahead = target_day - today_weekday
+
+    # ✅ Allow today
+    if days_ahead < 0:
+        days_ahead += 7
+
+    # ✅ EXTRA: prevent past time today
+    if days_ahead == 0 and time_range:
+        start_time = time_range.split(" - ")[0]  # "10:53"
+        class_time = datetime.strptime(start_time, "%H:%M").time()
+
+        if datetime.now().time() > class_time:
+            days_ahead = 7  # move to next week
+
+    next_date = today + timedelta(days=days_ahead)
+
+    return next_date.strftime("%Y-%m-%d")
+
+def convert_to_zoom_time(date_str, time_range):
+    from datetime import datetime
+
+    start_time = time_range.split(" - ")[0]  # "10:53"
+
+    dt = datetime.strptime(f"{date_str} {start_time}", "%Y-%m-%d %H:%M")
+
+    # ✅ Convert to ISO format
+    return dt.strftime("%Y-%m-%dT%H:%M:%S")
+
+
 @auth_bp.route('/add_schedule', methods=['POST'])
 def add_schedule():
 
     from models import ScheduleRule, Class
     from datetime import datetime
+    import requests
+    import os
 
     data = request.get_json()
 
+    print("FULL DATA RECEIVED:", data)
+
+    # ✅ Extract data
     student_id = data['student_id']
     teacher_id = data['teacher_id']
     subject = data['subject']
     days = data['days']
     time = data['time']
-
-    # ✅ default
     is_recurring = data.get('is_recurring', False)
+    is_online = data.get("is_online", False)
 
-    print("DEBUG teacher_id received:", teacher_id)
-    print("DEBUG is_recurring:", is_recurring)
+    print("is_online:", is_online)
+    print("ZOOM TOKEN:", os.getenv("ZOOM_TOKEN"))
 
     # ✅ TIME SPLIT
     new_start, new_end = time.split(" - ")
@@ -883,7 +986,7 @@ def add_schedule():
             if is_overlap(new_start, new_end, old_start, old_end):
                 return jsonify({"message": "Teacher not available (time overlap)"}), 400
 
-    # ✅ SAVE RULE
+    # ✅ CREATE RULE
     rule = ScheduleRule(
         student_id=student_id,
         teacher_id=teacher_id,
@@ -894,14 +997,13 @@ def add_schedule():
     )
 
     db.session.add(rule)
-    db.session.commit()
+    db.session.flush()  # ✅ get rule.id before commit
 
-    # ✅  ALWAYS CREATE ONLY ONE CLASS
-
+    # ✅ CREATE FIRST CLASS
     first_day = days[0]
-    class_date = get_next_date(first_day)
+    class_date = get_next_date(first_day, time)
 
-    # ✅ avoid duplicate (very important)
+    # ✅ avoid duplicate
     exists = Class.query.filter_by(
         student_id=student_id,
         teacher_id=teacher_id,
@@ -910,46 +1012,82 @@ def add_schedule():
         time=time
     ).first()
 
-    if not exists:
-        new_class = Class(
-            student_id=student_id,
-            teacher_id=teacher_id,
-            subject=subject,
-            date=class_date,
-            time=time,
-            status="scheduled",
-            rule_id=rule.id   # ✅ IMPORTANT (link rule)
-        )
+    if exists:
+        return jsonify({"message": "Class already exists"}), 400
 
-        db.session.add(new_class)
-        db.session.commit()
-        create_backup()
+    new_class = Class(
+        student_id=student_id,
+        teacher_id=teacher_id,
+        subject=subject,
+        date=class_date,
+        time=time,
+        status="scheduled",
+        rule_id=rule.id
+    )
+
+    new_class.is_online = is_online
+    # ✅ ZOOM INTEGRATION
+    if is_online:
+        print("✅ Creating Zoom meeting...")
+
+        token = get_zoom_access_token()
+        if not token:
+            print("❌ Unable to get Zoom token")
+        else:
+            url = "https://api.zoom.us/v2/users/me/meetings"
+
+            headers = {
+                "Authorization": f"Bearer {token}",
+                "Content-Type": "application/json"
+            }
+        zoom_start_time = convert_to_zoom_time(class_date, time)
+        start, end = time.split(" - ")
+        start_dt = datetime.strptime(start, "%H:%M")
+        end_dt = datetime.strptime(end, "%H:%M")
+        
+        if end_dt < start_dt:
+            end_dt += timedelta(days=1)
+        duration = int((end_dt - start_dt).total_seconds() / 60)
+
+
+        payload = {
+            "topic": f"{subject} Class",
+            "type": 2,
+            "start_time": zoom_start_time,  # ✅ dynamic
+            "duration": duration,
+            "timezone": "Asia/Kolkata",
+            "settings": {
+                "join_before_host": True
+            }
+        }
+
+        response = requests.post(url, json=payload, headers=headers)
+
+        print("ZOOM RESPONSE:", response.text)
+
+        if response.status_code == 201:
+            zoom_data = response.json()
+
+            new_class.is_online = True
+            new_class.join_url = zoom_data.get("join_url")
+            new_class.start_url = zoom_data.get("start_url")
+
+            print("✅ Zoom Created:", new_class.join_url)
+
+        elif response.status_code == 401:
+            print("❌ Token expired or invalid")
+
+        else:
+            print("❌ Zoom Error:", response.text)
+
+    # ✅ SAVE EVERYTHING
+    db.session.add(new_class)
+    db.session.commit()
+
+    # ✅ BACKUP
+    create_backup()
+
     return jsonify({"message": "Schedule created successfully"})
-
-from datetime import datetime, timedelta
-
-def get_next_date(day_name):
-    days_map = {
-        "Monday": 0,
-        "Tuesday": 1,
-        "Wednesday": 2,
-        "Thursday": 3,
-        "Friday": 4,
-        "Saturday": 5,
-        "Sunday": 6
-    }
-
-    today = datetime.today()
-    target_day = days_map[day_name]
-
-    days_ahead = target_day - today.weekday()
-
-    if days_ahead <= 0:
-        days_ahead += 7
-
-    next_date = today + timedelta(days=days_ahead)
-
-    return next_date.strftime("%Y-%m-%d")
 
 @auth_bp.route('/get_classes', methods=['GET'])
 def get_classes():
