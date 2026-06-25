@@ -147,6 +147,7 @@ def mark_attendance():
     from models import Class, User, ScheduleRule
     from datetime import datetime, timedelta
     from utils.db import db
+    import requests
 
     data = request.get_json()
 
@@ -159,21 +160,20 @@ def mark_attendance():
     if not cls:
         return jsonify({"message": "Class not found"}), 404
 
-    # ✅ GET USER ROLE
+    # ✅ USER ROLE
     user = User.query.get(user_id)
     role = user.role if user else ""
 
     today = datetime.today().date()
     class_date = datetime.strptime(cls.date, "%Y-%m-%d").date()
 
-    # ✅ VALIDATION FOR TEACHER
     if "admin" not in role:
         if today < class_date or today > class_date + timedelta(days=1):
             return jsonify({
                 "message": "Attendance can be marked only on class date or next day"
             }), 400
 
-    # ✅ SAVE ATTENDANCE
+    # ✅ UPDATE CURRENT CLASS
     cls.attendance = attendance
 
     if attendance in ["present", "absent"]:
@@ -181,17 +181,10 @@ def mark_attendance():
 
     db.session.commit()
 
-    # ✅ ✅ ✅ NEW LOGIC: GENERATE NEXT CLASS ONLY FOR RECURRING
+    # ✅ GET RULE
+    rule = ScheduleRule.query.get(cls.rule_id)
 
-    rule = ScheduleRule.query.filter_by(
-        student_id=cls.student_id,
-        teacher_id=cls.teacher_id,
-        subject=cls.subject,
-        time=cls.time,
-        status="active"
-    ).first()
-
-    if rule and rule.is_recurring:
+    if attendance in ["present", "absent"] and rule and rule.is_recurring:
 
         day_map = {
             "Monday": 0, "Tuesday": 1, "Wednesday": 2,
@@ -202,7 +195,13 @@ def mark_attendance():
 
         next_dates = []
 
-        for d in rule.days:
+        days_list = rule.days if isinstance(rule.days, list) else rule.days.split(",")
+
+        print("RULE DAYS:", rule.days)
+        print("DAYS LIST:", days_list)
+
+        for d in days_list:
+            d = d.strip()
             target_day = day_map[d]
 
             days_ahead = target_day - current_date.weekday()
@@ -213,19 +212,23 @@ def mark_attendance():
             next_date = current_date + timedelta(days=days_ahead)
             next_dates.append(next_date)
 
-        # ✅ pick nearest next valid date
         next_class_date = min(next_dates).strftime("%Y-%m-%d")
 
-        # ✅ PREVENT DUPLICATE CLASS
+        # ✅ DUPLICATE CHECK
         exists = Class.query.filter_by(
             student_id=cls.student_id,
             teacher_id=cls.teacher_id,
             subject=cls.subject,
             date=next_class_date,
-            time=cls.time
+            time=cls.time,
+            rule_id=rule.id
         ).first()
 
+        print("NEXT DATE:", next_class_date)
+        print("CHECK EXISTS:", exists)
+
         if not exists:
+
             new_class = Class(
                 student_id=cls.student_id,
                 teacher_id=cls.teacher_id,
@@ -233,8 +236,62 @@ def mark_attendance():
                 date=next_class_date,
                 time=cls.time,
                 status="scheduled",
+                attendance="pending",
                 rule_id=rule.id
             )
+
+            print("✅ Creating next class for:", next_class_date)
+
+            # ✅  ZOOM LOGIC
+            if cls.is_online:
+                try:
+                    token = get_zoom_access_token()
+
+                    url = "https://api.zoom.us/v2/users/me/meetings"
+
+                    headers = {
+                        "Authorization": f"Bearer {token}",
+                        "Content-Type": "application/json"
+                    }
+
+                    zoom_start_time = convert_to_zoom_time(next_class_date, cls.time)
+
+                    start, end = cls.time.split(" - ")
+                    start_dt = datetime.strptime(start, "%H:%M")
+                    end_dt = datetime.strptime(end, "%H:%M")
+
+                    if end_dt < start_dt:
+                        end_dt += timedelta(days=1)
+
+                    duration = int((end_dt - start_dt).total_seconds() / 60)
+
+                    payload = {
+                        "topic": f"{cls.subject} Class",
+                        "type": 2,
+                        "start_time": zoom_start_time,
+                        "duration": duration,
+                        "timezone": "Asia/Kolkata",
+                        "settings": {
+                            "join_before_host": True
+                        }
+                    }
+
+                    response = requests.post(url, json=payload, headers=headers)
+
+                    if response.status_code == 201:
+                        zoom_data = response.json()
+
+                        new_class.is_online = True
+                        new_class.join_url = zoom_data.get("join_url")
+                        new_class.start_url = zoom_data.get("start_url")
+
+                        print("✅ Next Zoom Created:", new_class.join_url)
+
+                    else:
+                        print("❌ Zoom creation failed:", response.text)
+
+                except Exception as e:
+                    print("❌ Zoom error:", e)
 
             db.session.add(new_class)
             db.session.commit()
@@ -991,7 +1048,7 @@ def add_schedule():
         student_id=student_id,
         teacher_id=teacher_id,
         subject=subject,
-        days=days,
+        days=",".join(days),
         time=time,
         is_recurring=is_recurring
     )
@@ -1088,7 +1145,7 @@ def add_schedule():
     create_backup()
 
     return jsonify({"message": "Schedule created successfully"})
-
+    
 @auth_bp.route('/get_classes', methods=['GET'])
 def get_classes():
 
